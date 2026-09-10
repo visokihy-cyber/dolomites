@@ -1155,7 +1155,7 @@ function focusRoute(id,zoom=false){
  if(zoom){fitRoute(id);if(innerWidth<721)document.querySelector('.maparea').scrollIntoView({block:'start'});}
 }
 function routeHero(r){if(r.id===1&&trip.variants[1])return photos.find(p=>p.point==='locatelli')||photos.find(p=>p.tracks.includes('trecime'));return photos.find(p=>p.tracks.some(t=>r.tracks.includes(t))&&['seceda','braies','cadini','sorapis','scoiattoli','geisler','lagazuoi','sella','compatsch'].includes(p.point))||photos.find(p=>p.tracks.some(t=>r.tracks.includes(t)));}
-function routeMatches(r){const c=configFor(r.id),effort=c.technical?'hard':c.hours[1]<=5&&!c.exposure?'gentle':'medium';return (browseMode==='all'||recommendedRoutes().some(x=>x.id===r.id))&&(browseRegion==='all'||browseRegion==='selected'&&visible.has(r.id)||r.cluster===browseRegion)&&(browseEffort==='all'||browseEffort===effort);}
+function routeMatches(r){const c=configFor(r.id),effort=c.technical?'hard':c.hours[1]<=5&&!c.exposure?'gentle':'medium';return recommendedRoutes().some(x=>x.id===r.id)&&(browseRegion==='all'||browseRegion==='selected'&&visible.has(r.id)||r.cluster===browseRegion)&&(browseEffort==='all'||browseEffort===effort);}
 function ensureRouteInCatalog(id){if(!routeMatches(routeBy(id))){browseMode='all';browseRegion='all';browseEffort='all';}}
 function drawList(){
  const list=$('routeList');
