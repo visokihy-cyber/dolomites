@@ -1095,7 +1095,7 @@ function drawList(){
  $('emptyRoutes').hidden=routes.some(routeMatches);$('emptyRoutes').textContent='Точного совпадения нет. Измените условия подбора или откройте все маршруты.';$('catalogHeading').textContent=browseMode==='all'?'Все маршруты':'Подходящие варианты · '+routes.filter(routeMatches).length;$('allCatalog').textContent=browseMode==='all'?'Вернуться к подбору':'Все 9 маршрутов';
 }
 function setRouteSelection(ids){
- pinnedStop='';selectionTouched=true;showAllRoutes=false;visible=new Set(ids);pause();map.closePopup();
+ pinnedStop='';selectionTouched=true;showAllRoutes=false;visible=reconcileRouteSelection(ids);pause();map.closePopup();
  document.querySelectorAll('[data-route-details][open]').forEach(d=>{if(!visible.has(+d.dataset.routeDetails)){d.open=false;d.querySelector('.route-card-body').innerHTML='';}});
  if(!visible.has(selected)){selected=null;activeTrack='';$('routePicker').value='';}
  updateTrackSelect();drawList();drawMap();renderDetail();fitVisible();refreshPlanner();
@@ -1195,7 +1195,7 @@ function renderRouteBody(id,root){
  const closeRoute=document.createElement('button');closeRoute.type='button';closeRoute.className='section-close route-close';closeRoute.textContent='↑ Свернуть информацию о маршруте';closeRoute.onclick=()=>{const section=root.closest('[data-route-details]'),summary=section.querySelector(':scope > summary');section.open=false;summary.focus({preventScroll:true});summary.scrollIntoView({block:'nearest',behavior:'auto'});};root.append(closeRoute);
 }
 function selectRoute(id,zoom){
- pinnedStop='';browseMode='all';selectionTouched=true;showAllRoutes=false;pause();map.closePopup();selected=id;visible=new Set([id]);browseRegion='all';browseEffort='all';$('routePicker').value=id;$('routeChooser').open=true;
+ pinnedStop='';browseMode='all';selectionTouched=true;showAllRoutes=false;pause();map.closePopup();selected=id;visible=previewRouteSelection(id);browseRegion='all';browseEffort='all';$('routePicker').value=id;$('routeChooser').open=true;
  drawList();drawMap();renderDetail();chooseTrack(routeBy(id).tracks.find(t=>!hiddenTracks.has(t))||routeBy(id).tracks[0]);
  document.querySelectorAll('[data-route-details][open]').forEach(d=>{if(+d.dataset.routeDetails!==id){d.open=false;d.querySelector('.route-card-body').innerHTML='';}});
  const card=document.querySelector(`[data-card="${id}"]`),details=card.querySelector('[data-route-details]');details.open=true;
@@ -1271,7 +1271,7 @@ $('profileSvg').addEventListener('pointermove',e=>{if($('profileSvg').hasPointer
 $('profileSvg').addEventListener('pointerup',e=>{if($('profileSvg').hasPointerCapture(e.pointerId))$('profileSvg').releasePointerCapture(e.pointerId)});
 $('profileSvg').addEventListener('keydown',e=>{let v=progress;if(e.key==='ArrowRight')v+=.01;else if(e.key==='ArrowLeft')v-=.01;else if(e.key==='Home')v=0;else if(e.key==='End')v=1;else return;e.preventDefault();pause();photoTour=true;progress=Math.max(0,Math.min(1,v));updatePosition()});
 
-/* Trip planning: state, dates and itinerary are independent of map comparison. */
+/* Itinerary days belong to the checked routes; extra checked routes remain candidates. */
 const PLANNER=DATA.planner,baseRoutes=JSON.parse(JSON.stringify(routes));
 const PLAN_KEY='dolomites-plan-v2';
 const requestedInitialView=new URLSearchParams(location.search).get('view');
@@ -1281,7 +1281,7 @@ function validTripDate(s){if(!/^2026-(09|10|11)-\d{2}$/.test(s||''))return false
 function addDays(s,n){return new Date(Date.parse(s+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);}
 function niceDate(s){return s?new Date(s+'T12:00:00Z').toLocaleDateString('ru-RU',{day:'numeric',month:'long',weekday:'short',timeZone:'Europe/Rome'}):'Дата пока не выбрана';}
 function cleanIDs(ids,max=9){return [...new Set(Array.isArray(ids)?ids.map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=9):[])].slice(0,max);}
-function normalizePlan(v={}){const days=Number(v.days)===1?1:2;return {days,date:validTripDate(v.date)?v.date:'',hours:[2,4,5,7,9].includes(+v.hours)?+v.hours:5,exposure:v.exposure==='yes'?'yes':'no',transport:v.transport==='public'?'public':'car',itinerary:cleanIDs(v.itinerary,days),variants:Object.fromEntries(Object.entries(v.variants||{}).filter(([id,value])=>PLANNER.variants[id]?.[value])),starts:Object.fromEntries(Object.entries(v.starts||{}).filter(([id,t])=>/^[1-9]$/.test(id)&&/^([01]\d|2[0-3]):[0-5]\d$/.test(t))),adults:Math.max(1,Math.min(12,Math.floor(+v.adults)||2)),compare:cleanIDs(v.compare),focus:cleanIDs([v.focus],1)[0]||null,browse:v.browse==='all'?'all':'recommended',region:['all','west','east','cortina','selected'].includes(v.region)?v.region:'all',effort:['all','gentle','medium','hard'].includes(v.effort)?v.effort:'all'};}
+function normalizePlan(v={}){const days=Number(v.days)===1?1:2,itinerary=cleanIDs(v.itinerary,days);return {days,date:validTripDate(v.date)?v.date:'',hours:[2,4,5,7,9].includes(+v.hours)?+v.hours:5,exposure:v.exposure==='yes'?'yes':'no',transport:v.transport==='public'?'public':'car',itinerary,variants:Object.fromEntries(Object.entries(v.variants||{}).filter(([id,value])=>PLANNER.variants[id]?.[value])),starts:Object.fromEntries(Object.entries(v.starts||{}).filter(([id,t])=>/^[1-9]$/.test(id)&&/^([01]\d|2[0-3]):[0-5]\d$/.test(t))),adults:Math.max(1,Math.min(12,Math.floor(+v.adults)||2)),compare:cleanIDs([...cleanIDs(v.compare),...itinerary]),focus:cleanIDs([v.focus],1)[0]||null,browse:v.browse==='all'?'all':'recommended',region:['all','west','east','cortina','selected'].includes(v.region)?v.region:'all',effort:['all','gentle','medium','hard'].includes(v.effort)?v.effort:'all'};}
 function readPlan(){
  const params=new URLSearchParams(location.search),shared=params.has('plan')||params.has('routes')||params.has('route');
  if(shared)return normalizePlan({days:params.get('days'),date:params.get('date'),hours:params.get('hours'),exposure:params.get('heights'),transport:params.get('transport'),itinerary:(params.get('plan')||'').split(','),compare:(params.get('routes')||params.get('route')||params.get('plan')||'').split(','),focus:params.get('route'),variants:Object.fromEntries((params.get('short')||'').split(',').filter(Boolean).map(id=>[id,'short'])),starts:Object.fromEntries((params.get('starts')||'').split(',').filter(x=>/^\d@\d\d:\d\d$/.test(x)).map(x=>x.split('@'))),adults:params.get('adults'),browse:params.get('catalog')||'all',region:params.get('region'),effort:params.get('effort')});
@@ -1317,9 +1317,7 @@ function catalogOrder(){
 
 function updatePreferences(){
  if(!$('tripDate').reportValidity())return;
- const days=+$('tripDays').value,shortening=trip.itinerary.length>days;
- if(shortening)rememberPlanChange('План сокращён до одного дня');
- trip.days=days;trip.itinerary=trip.itinerary.slice(0,days);trip.date=$('tripDate').value;
+ trimPlanDays(+$('tripDays').value);trip.date=$('tripDate').value;
  trip.hours=+$('tripHours').value;trip.exposure=$('tripHeights').value;trip.transport=$('tripTransport').value;
  if(trip.hours<=2&&!trip.itinerary.includes(2))trip.variants[2]='short';
  if(trip.hours<=5&&trip.exposure==='no'&&!trip.itinerary.includes(1))trip.variants[1]='short';
@@ -1387,13 +1385,13 @@ function refreshPlanner(){
 function addToPlan(id){
  if(trip.itinerary.includes(id)){openMyPlan();return;}
  if(trip.itinerary.length>=trip.days){setTab('tripview');toast('Все дни заполнены. Замените маршрут в списке дня или уберите один из дней.');return;}
- planUndoState=null;trip.itinerary.push(id);setRouteSelection(visible.size>trip.days&&trip.itinerary.length<trip.days?visible:trip.itinerary);
+ planUndoState=null;trip.itinerary.push(id);setRouteSelection([...visible,id]);
  if(planTab==='tripview'&&trip.itinerary.length<trip.days)document.querySelector('[data-plan-slot="'+trip.itinerary.length+'"]')?.focus();
  toast('Добавлен день '+trip.itinerary.length+'. Сводка, переезды и ночёвка — по кнопке «Посмотреть мой план».');
 }
 
 function openRouteSection(id,section){setTab('mapview');browseMode='all';if(!visible.has(id))visible.add(id);focusRoute(id);const card=document.querySelector('[data-card="'+id+'"]'),details=card.querySelector('[data-route-details]');details.open=true;const body=details.querySelector('.route-card-body');renderRouteBody(id,body);const target=body.querySelector('[data-section="'+section+'"]');if(target){target.open=true;target.scrollIntoView({block:'start',behavior:'auto'});if(section==='season')loadRouteWeather(target.querySelector('[data-weather-route]'));}refreshPlanner();}
-function wirePlannerActions(root){root.querySelectorAll('[data-add-plan]').forEach(b=>b.onclick=()=>addToPlan(+b.dataset.addPlan));root.querySelectorAll('[data-open-plan]').forEach(b=>b.onclick=openMyPlan);root.querySelectorAll('[data-quick]').forEach(b=>b.onclick=()=>openRouteSection(+b.dataset.id,b.dataset.quick));root.querySelectorAll('[data-repick]').forEach(b=>b.onclick=()=>{setTab('mapview');$('tripFinder').scrollIntoView({block:'start'});$('findRoutes').focus({preventScroll:true});});root.querySelectorAll('[data-plan-remove]').forEach(b=>b.onclick=()=>{rememberPlanChange('Убран день '+(+b.dataset.planRemove+1));trip.itinerary.splice(+b.dataset.planRemove,1);refreshPlanner();});root.querySelectorAll('[data-plan-open]').forEach(b=>b.onclick=()=>{setTab('mapview');browseMode='all';selectRoute(+b.dataset.planOpen,true);});root.querySelectorAll('[data-start]').forEach(el=>el.onchange=()=>{trip.starts[el.dataset.start]=el.value||'09:00';refreshPlanner();});root.querySelectorAll('[data-plan-reverse]').forEach(b=>b.onclick=()=>{trip.itinerary.reverse();refreshPlanner();drawAlerts();});root.querySelectorAll('[data-plan-map]').forEach(b=>b.onclick=()=>{setTab('mapview');setRouteSelection(trip.itinerary);transferOrder=[...trip.itinerary];transferKey='';renderTransfers();drawMap();fitVisible();});root.querySelectorAll('[data-fallback]').forEach(b=>b.onclick=()=>{const id=+b.dataset.fallback;if(id===2)setVariant(2,'short');openRouteSection(id,'season');});root.querySelectorAll('[data-plan-lifts]').forEach(b=>b.onclick=()=>setTab('liftview'));root.querySelectorAll('[data-plan-download]').forEach(b=>b.onclick=downloadPlan);root.querySelectorAll('[data-plan-print]').forEach(b=>b.onclick=()=>window.print());root.querySelectorAll('[data-alert-focus]').forEach(b=>b.onclick=()=>{setTab('mapview');const a=DATA.alerts.find(x=>x.id===b.dataset.alertFocus);showAllRoutes=true;drawMap();map.setView(a.pos,13);alertMarkers[a.id]?.openPopup();});}
+function wirePlannerActions(root){root.querySelectorAll('[data-add-plan]').forEach(b=>b.onclick=()=>addToPlan(+b.dataset.addPlan));root.querySelectorAll('[data-open-plan]').forEach(b=>b.onclick=openMyPlan);root.querySelectorAll('[data-quick]').forEach(b=>b.onclick=()=>openRouteSection(+b.dataset.id,b.dataset.quick));root.querySelectorAll('[data-repick]').forEach(b=>b.onclick=()=>{setTab('mapview');$('tripFinder').scrollIntoView({block:'start'});$('findRoutes').focus({preventScroll:true});});root.querySelectorAll('[data-plan-remove]').forEach(b=>b.onclick=()=>removePlanDay(+b.dataset.planRemove));root.querySelectorAll('[data-plan-open]').forEach(b=>b.onclick=()=>{setTab('mapview');browseMode='all';selectRoute(+b.dataset.planOpen,true);});root.querySelectorAll('[data-start]').forEach(el=>el.onchange=()=>{trip.starts[el.dataset.start]=el.value||'09:00';refreshPlanner();});root.querySelectorAll('[data-plan-reverse]').forEach(b=>b.onclick=()=>{trip.itinerary.reverse();refreshPlanner();drawAlerts();});root.querySelectorAll('[data-plan-map]').forEach(b=>b.onclick=()=>{setTab('mapview');setRouteSelection(trip.itinerary);transferOrder=[...trip.itinerary];transferKey='';renderTransfers();drawMap();fitVisible();});root.querySelectorAll('[data-fallback]').forEach(b=>b.onclick=()=>{const id=+b.dataset.fallback;if(id===2)setVariant(2,'short');openRouteSection(id,'season');});root.querySelectorAll('[data-plan-lifts]').forEach(b=>b.onclick=()=>setTab('liftview'));root.querySelectorAll('[data-plan-download]').forEach(b=>b.onclick=downloadPlan);root.querySelectorAll('[data-plan-print]').forEach(b=>b.onclick=()=>window.print());root.querySelectorAll('[data-alert-focus]').forEach(b=>b.onclick=()=>{setTab('mapview');const a=DATA.alerts.find(x=>x.id===b.dataset.alertFocus);showAllRoutes=true;drawMap();map.setView(a.pos,13);alertMarkers[a.id]?.openPopup();});}
 function downloadPlan(){const copy=$('tripContent').cloneNode(true);copy.querySelectorAll('button,input').forEach(e=>e.remove());copy.querySelectorAll('details').forEach(e=>e.open=true);const css='body{max-width:850px;margin:30px auto;padding:0 20px;font:16px/1.6 system-ui;color:#173544}article,section,details{margin:20px 0;padding:18px;border:1px solid #ccd9df;border-radius:12px}a{color:#176178}h3{font-size:22px}.day-steps li{padding:8px 0}.critical-note{background:#fff1de;padding:12px}.route-tags{font-size:13px}.route-tags span{margin-right:10px}.overview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.overview-metrics b,.overview-metrics span{display:block}.overview-metrics span{font-size:12px}.overview-route,.overview-lodging,.overview-note{font-size:14px}@media(max-width:480px){.overview-metrics{grid-template-columns:1fr}}';const html='<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Мой план · Доломиты</title><style>'+css+'</style><h1>Мои выходные в Доломитах</h1><p>'+esc($('planDateLabel').textContent)+'</p>'+$('planOverview').outerHTML+copy.innerHTML+'<p>Сохранено '+esc(new Date().toLocaleString('ru-RU'))+'. Расписания и ограничения требуют повторной проверки.</p><p><a href="'+esc(planURL().href)+'">Открыть этот план на сайте</a></p></html>';saveBlob(html,'dolomites-my-plan.html','text/html');}
 function saveBlob(body,name,type){const u=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
 async function ensureOffline(){if(OFF.areas.length)return true;try{$('maperror').hidden=false;$('maperror').textContent='Загружаем карту района… Для использования без сети доступен полный архив в разделе подготовки.';const response=await fetch(new URL('offline.json',document.baseURI));if(!response.ok)throw new Error();const value=await response.json();if(!value.areas?.length||!value.roads?.length)throw new Error();OFF=value;offIndex.clear();OFF.areas.forEach((f,i)=>offAdd('a',i,f[2]));OFF.roads.forEach((f,i)=>offAdd('r',i,f[2]));OFF.labels.forEach((p,i)=>offAdd('l',i,[p[1],p[2],p[1],p[2]]));$('maperror').hidden=true;return true;}catch{$('maperror').hidden=false;$('maperror').textContent='Не удалось загрузить карту района. Попробуйте при подключении к сети или откройте заранее скачанный полный архив.';return false;}}
@@ -1401,7 +1399,7 @@ function initPlanner(){
  if(!trip.itinerary.includes(1)&&!trip.focus&&!trip.compare.length&&trip.hours<=5&&trip.exposure==='no')trip.variants[1]='short';if(trip.hours<=2&&!trip.itinerary.includes(2))trip.variants[2]='short';applyVariants();browseMode=trip.browse;browseRegion=trip.region;browseEffort=trip.effort;visible=new Set(trip.compare);selected=visible.has(trip.focus)?trip.focus:null;showAllRoutes=!visible.size;if(selected)$('routePicker').value=selected;
  $('tripDays').value=trip.days;$('tripDate').value=trip.date;$('tripHours').value=trip.hours;$('tripHeights').value=trip.exposure;$('tripTransport').value=trip.transport;
  $('planDate').onchange=()=>{if(!$('planDate').reportValidity()){$('planDate').value=trip.date;toast('Выберите дату осени 2026 года');return;}trip.date=validTripDate($('planDate').value)?$('planDate').value:'';$('tripDate').value=trip.date;document.querySelectorAll('[data-route-details][open]').forEach(d=>{d.open=false;d.querySelector('.route-card-body').innerHTML='';});refreshPlanner();drawAlerts();};$('findRoutes').onclick=updatePreferences;$('allCatalog').onclick=()=>{browseMode=browseMode==='all'?'recommended':'all';drawList();savePlan();};$('sharePlan').onclick=sharePlan;$('shareClose').onclick=()=>$('shareDialog').close();$('downloadPlan').onclick=downloadPlan;
- $('planSlots').addEventListener('change',e=>{const input=e.target.closest('[data-plan-slot]');if(!input)return;const i=+input.dataset.planSlot,id=+input.value;if(id&&trip.itinerary.includes(id)&&trip.itinerary[i]!==id){toast('Этот маршрут уже есть в другом дне');renderPlan();return;}if(trip.itinerary[i])rememberPlanChange('Изменён день '+(i+1));if(!id)trip.itinerary.splice(i,1);else if(i>trip.itinerary.length){trip.itinerary.push(id);toast('Маршрут добавлен в первый свободный день');}else trip.itinerary[i]=id;if(trip.itinerary.length===trip.days)setRouteSelection(trip.itinerary);else refreshPlanner();});
+ $('planSlots').addEventListener('change',e=>{const input=e.target.closest('[data-plan-slot]');if(input)setPlanDay(+input.dataset.planSlot,+input.value);});
  $('buildFromSelection').onclick=()=>{const ids=[...visible];if(!ids.length){toast('Сначала отметьте маршруты галочками');return;}if(ids.length>trip.days){toast('Для '+trip.days+' дней выберите не более '+trip.days+' маршрутов. Остальные можно оставить для сравнения.');return;}if(trip.itinerary.length&&!sameRouteSet(ids,trip.itinerary))rememberPlanChange('План заменён выбранными маршрутами');trip.itinerary=ids;refreshPlanner();setTab('tripview');};
  $('mapQuick').addEventListener('click',e=>{const b=e.target.closest('[data-map-quick]');if(!b||!selected)return;openRouteSection(selected,b.dataset.mapQuick);});
  $('mapExtras').addEventListener('toggle',()=>{renderProfile();map.invalidateSize();fitVisible();});
@@ -1461,7 +1459,7 @@ function emptyPlanHTML(){
  const ids=[...visible];
  return '<div class="plan-empty"><h3>'+(ids.length?'Распределите выбранные маршруты по дням':'Выберите прогулку — здесь появится готовый план')+'</h3><p>'+(ids.length?'На карте отмечено '+ids.length+'. Для этой поездки выберите '+trip.days+' '+(trip.days===1?'маршрут':'маршрута')+' — кнопками ниже или в списках дней выше.':'Отметьте один-два трека в каталоге и нажмите «Посмотреть план из выбранных». Здесь будут сводка, переезды, обед и район ночёвки.')+'</p>'+(ids.length?'<div class="plan-candidates">'+ids.map(id=>'<button data-add-plan="'+id+'"><span class="num" style="--route:'+routeBy(id).color+'">'+id+'</span>'+esc(routeBy(id).name)+'</button>').join('')+'</div>':'')+'<button class="primary-link" data-repick>Вернуться к маршрутам →</button></div>';
 }
-function rememberPlanChange(message){planUndoState={message,trip:JSON.parse(JSON.stringify(trip))};}
+function rememberPlanChange(message){planUndoState={message,trip:JSON.parse(JSON.stringify({...trip,compare:[...visible],focus:selected,browse:browseMode,region:browseRegion,effort:browseEffort}))};}
 function planUndoHTML(){return planUndoState?'<span>'+esc(planUndoState.message)+'</span><button data-undo-plan>Вернуть</button>':'';}
 function renderPlanUndo(){$('planUndo').innerHTML=planUndoHTML();$('planUndo').querySelector('[data-undo-plan]')?.addEventListener('click',restorePlanChange);}
 function restorePlanChange(){
@@ -1472,8 +1470,32 @@ function restorePlanChange(){
  $('routeList').innerHTML='';drawList();drawMap();renderDetail();fitVisible();refreshPlanner();toast('Предыдущее состояние плана восстановлено');
 }
 function changePlanDays(days){
- if(trip.itinerary.length>days)rememberPlanChange('План сокращён до одного дня');
- trip.days=days;trip.itinerary=trip.itinerary.slice(0,days);$('tripDays').value=days;refreshPlanner();
+ trimPlanDays(days);$('tripDays').value=trip.days;setRouteSelection(visible);
+}
+function trimPlanDays(days){
+ days=Number(days)===1?1:2;
+ const removed=trip.itinerary.slice(days);
+ if(removed.length)rememberPlanChange('План сокращён до одного дня');
+ trip.days=days;trip.itinerary=trip.itinerary.slice(0,days);removed.forEach(id=>visible.delete(id));
+}
+function reconcileRouteSelection(ids){
+ const next=new Set(cleanIDs([...ids])),removed=trip.itinerary.filter(id=>!next.has(id));
+ if(removed.length){rememberPlanChange(removed.length===1?'Маршрут убран из плана':'Маршруты убраны из плана');trip.itinerary=trip.itinerary.filter(id=>next.has(id));}
+ return next;
+}
+function previewRouteSelection(id){return new Set([...trip.itinerary,id]);}
+function removePlanDay(index){
+ const id=trip.itinerary[index];if(!id)return;
+ rememberPlanChange('Убран день '+(index+1));trip.itinerary.splice(index,1);
+ setRouteSelection([...visible].filter(other=>other!==id));
+}
+function setPlanDay(index,id){
+ const previous=trip.itinerary[index];
+ if(id&&trip.itinerary.includes(id)&&previous!==id){toast('Этот маршрут уже есть в другом дне');renderPlan();return;}
+ if(previous===id)return;
+ if(previous)rememberPlanChange('Изменён день '+(index+1));else planUndoState=null;
+ if(!id)trip.itinerary.splice(index,1);else if(index>trip.itinerary.length){trip.itinerary.push(id);toast('Маршрут добавлен в первый свободный день');}else trip.itinerary[index]=id;
+ const next=new Set(visible);if(previous)next.delete(previous);if(id)next.add(id);setRouteSelection(next);
 }
 function planFocusTarget(){
  const e=document.activeElement;if(!e)return '';
