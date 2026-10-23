@@ -1121,7 +1121,7 @@ function stopMapUrl(s){return s.mapUrl||'https://www.google.com/maps/search/?api
 function stopNav(s,walk=false){const park=stops.find(x=>x.id===s.park);const destination=walk?s.pos:(s.drivePos||park?.pos||s.pos);return 'https://www.google.com/maps/dir/?'+new URLSearchParams({api:'1',destination:destination.join(','),travelmode:walk?'walking':'driving'})}
 function googlePointLinks(p){return '<div class="stoplinks"><a target="_blank" rel="noopener" href="'+esc(stopMapUrl(p))+'">Открыть в Google Maps ↗</a><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?'+esc(new URLSearchParams({api:'1',destination:p.pos.join(',')}).toString())+'">Проложить маршрут ↗</a></div><small>Часы работы, отзывы и фото — в Google Maps, если у места есть карточка.</small>';}
 function stopGoogleActions(s){return '<div class="stoplinks"><a href="'+esc(stopMapUrl(s))+'" target="_blank" rel="noopener">Открыть в Google Maps ↗</a><a href="'+esc(stopNav(s))+'" target="_blank" rel="noopener">'+(s.access==='walking'?'Маршрут к парковке':'Проложить маршрут')+' ↗</a>'+(s.access==='walking'?'<a href="'+esc(stopNav(s,true))+'" target="_blank" rel="noopener">Пешком к месту ↗</a>':'')+'</div><small>Часы работы, отзывы и фото — в Google Maps. Если появится список, выберите нужное место.</small>';}
-map.on('click',e=>{if(e.propagatedFrom||e.layer||e.originalEvent?.target?.closest?.('.leaflet-interactive,.leaflet-marker-icon,.leaflet-control,.leaflet-popup'))return;const p={pos:[e.latlng.lat,e.latlng.lng]};L.popup({maxWidth:300}).setLatLng(e.latlng).setContent('<b>Место на карте</b>'+googlePointLinks(p)).openOn(map);});
+
 function stopCard(s){return '<div class="stopcard"><b>'+esc(s.name)+'</b>'+stopGoogleActions(s)+'<div class="muted">'+stopTypes[s.type][1]+' · маршруты '+s.routes.join(', ')+'</div>'+(s.google?'<p class="stoprating">Google '+s.google.toFixed(1)+' / 5 ('+(s.googleCount||'число отзывов не сверено')+') · Tripadvisor '+s.ta.toFixed(1)+' / 5 ('+(s.taCount||'число отзывов не сверено')+')<br><small>Рейтинги: '+esc(s.ratingCheckedAt||'09.09.2026')+'</small></p>':'')+photoPopup('stop:'+s.id)+statusHTML(s,useDate(selected&&s.routes.includes(selected)?selected:s.routes[0]))+'<p>'+esc(s.description)+'</p><p><b>'+ (s.type==='parking'?'Парковка: условия и цены':s.type==='view'?'Посещение':'Часы работы · время Италии') +'</b><br>'+esc(s.hours)+'</p><p><b>Проверка '+esc(s.checkedAt||'09.09.2026')+'</b><br>'+esc(s.status)+'</p><p class="stopstatus"><b>Ближайшие две недели · до '+esc(s.through||'24.09.2026')+'</b><br>'+esc(s.next)+'</p><div class="stoplinks">'+(s.taUrl?'<a href="'+esc(s.taUrl)+'" target="_blank" rel="noopener">Tripadvisor ↗</a>':'')+'<a href="'+esc(s.source)+'" target="_blank" rel="noopener">Официальный источник ↗</a></div></div>'}
 let pinnedStop='';
 function stopVisible(s){if(!$(stopTypes[s.type][3]).checked)return false;if(showAllRoutes||s.id===pinnedStop)return true;if(!s.routes.some(id=>mapRouteIDs().includes(id)&&(s.type!=='parking'||relevantStops(routeBy(id),'parking').includes(s))))return false;if(s.type==='view'||s.access==='driving')return mapRouteIDs().some(id=>routeBy(id).tracks.some(tid=>roadTouches(s.pos,trackBy(tid).points,1800)))||(selectedTransferResult()?.legs||[]).some(l=>roadTouches(s.pos,legRoad(l),1800));return true;}
@@ -1833,8 +1833,8 @@ function installGoogleBasemap(config){
     if(!obj){obj=new google.maps.Marker(opts);original.on('move',queueDraw);copies.set(original,obj);}else obj.setOptions(opts);
    }else if(original instanceof L.Marker){
     const pos=original.getLatLng(),html=original.options.icon?.options?.html||'';const d=document.createElement('div');d.innerHTML=html;
-    const dot=d.querySelector('.dotmarker');const label=(dot?.textContent||d.textContent||'•').trim().slice(0,2);const color=dot?.style.getPropertyValue('--route')||'#205b65';
-    const opts={map:nativeMap,position:{lat:pos.lat,lng:pos.lng},title:original.options.title||'',label:{text:label||'•',color:'#fff',fontSize:'12px',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:color,fillOpacity:1,strokeColor:'#fff',strokeWeight:2},zIndex:original.options.zIndexOffset||10};
+    const dot=d.querySelector('.dotmarker,.pointmarker'),badge=d.querySelector('.stop-badge');const label=Array.from((badge?.textContent||dot?.textContent||d.textContent||'•').trim()).slice(0,2).join('');const color=badge?.style.backgroundColor||dot?.style.getPropertyValue('--route')||'#205b65';
+    const opts={map:nativeMap,position:{lat:pos.lat,lng:pos.lng},title:original.options.title||'',clickable:original.options.interactive!==false,label:{text:label||'•',color:'#fff',fontSize:'12px',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:badge?14:11,fillColor:color,fillOpacity:1,strokeColor:'#fff',strokeWeight:2},zIndex:original.options.zIndexOffset||10};
     if(!obj){obj=new google.maps.Marker(opts);obj.addListener('click',()=>original.fire('click',{latlng:original.getLatLng()}));copies.set(original,obj);}else obj.setOptions(opts);
    }else return;
    present.add(original);
@@ -1867,10 +1867,12 @@ function installGoogleBasemap(config){
    await loadScript('https://maps.googleapis.com/maps/api/js?'+params,'atlasGoogleReady');
    if(failed||!window.google?.maps?.Map)throw new Error('authorization');
    const p=map.getCenter();
-   nativeMap=new google.maps.Map(host,{center:{lat:p.lat,lng:p.lng},zoom:map.getZoom(),mapTypeId:'roadmap',clickableIcons:true,disableDefaultUI:true,gestureHandling:'greedy',keyboardShortcuts:true});
+   nativeMap=new google.maps.Map(host,{center:{lat:p.lat,lng:p.lng},zoom:map.getZoom(),mapTypeId:'roadmap',clickableIcons:true,styles:[{featureType:'poi.business',stylers:[{visibility:'on'}]}],disableDefaultUI:true,gestureHandling:'greedy',keyboardShortcuts:true});
    info=new google.maps.InfoWindow({maxWidth:340});
    nativeMap.addListener('idle',()=>{if(!active())return;const p=nativeMap.getCenter();fromGoogle=true;map.setView([p.lat(),p.lng()],Math.round(nativeMap.getZoom()),{animate:false});fromGoogle=false;queueDraw();});
-   nativeMap.addListener('click',e=>{info.close();if(e.placeId)return;const p={pos:[e.latLng.lat(),e.latLng.lng()]};info.setContent('<b>Место на карте</b>'+googlePointLinks(p));info.setPosition(e.latLng);info.open({map:nativeMap});});
+   // Keep Google's own POI card; a blank-map click only dismisses atlas details.
+   nativeMap.addListener('click',()=>{info.close();map.closePopup();});
+   info.addListener('closeclick',()=>map.closePopup());
   })();}
   return sdkPromise;
  }
