@@ -1808,10 +1808,11 @@ function installGoogleBasemap(config){
  const option=document.createElement('option');option.value='google';option.textContent='Google Maps · пробный доступ';select.append(option);
  let sdkPromise=null,nativeMap=null,revision=0,failed=false,fromGoogle=false,drawFrame=0;
  const host=document.createElement('div');host.id='googleInteractiveMap';host.style.cssText='position:absolute;inset:0;z-index:1;display:none';$('map').append(host);
- const style=document.createElement('style');style.textContent='#map.google-active>.leaflet-pane{visibility:hidden}#map.google-active .leaflet-control-attribution{display:none}#googleInteractiveMap .gm-style-iw-d{max-height:min(55vh,400px)!important;overflow:auto!important}';document.head.append(style);
+ const style=document.createElement('style');style.textContent='#map.google-active>.leaflet-pane{visibility:hidden}#map.google-active .leaflet-control-attribution{display:none}#map.google-active .leaflet-bottom.leaflet-left{bottom:26px}#googleInteractiveMap .gm-style-iw-d{max-height:min(55vh,400px)!important;overflow:auto!important}';document.head.append(style);
  const interactions=['dragging','scrollWheelZoom','doubleClickZoom','touchZoom','boxZoom','keyboard'];const priorHandlers={};
  L.DomEvent.disableClickPropagation(host);L.DomEvent.disableScrollPropagation(host);
  const copies=new Map();let info=null;
+ $('map').querySelector('.leaflet-control-zoom').addEventListener('click',e=>{if(!active()||!nativeMap)return;const b=e.target.closest('a');if(!b)return;e.preventDefault();e.stopImmediatePropagation();nativeMap.setZoom(nativeMap.getZoom()+(b.classList.contains('leaflet-control-zoom-in')?1:-1));},true);
  function active(){return select.value==='google'&&host.style.display!=='none';}
  function hide(){host.style.display='none';$('map').classList.remove('google-active');info?.close();interactions.forEach(k=>{if(priorHandlers[k])map[k]?.enable();});}
  function queueDraw(){if(!active()||drawFrame)return;drawFrame=requestAnimationFrame(()=>{drawFrame=0;syncLayers();});}
@@ -1824,6 +1825,12 @@ function installGoogleBasemap(config){
     const pts=original.getLatLngs();if(!pts.length||Array.isArray(pts[0]))return;
     const opts={map:nativeMap,path:pts.map(p=>({lat:p.lat,lng:p.lng})),strokeColor:original.options.color||'#205b65',strokeWeight:original.options.weight||3,strokeOpacity:original.options.opacity??1,clickable:original.options.interactive!==false,zIndex:original.options.interactive===false?1:2};
     if(!obj){obj=new google.maps.Polyline(opts);obj.addListener('click',e=>original.fire('click',{latlng:L.latLng(e.latLng.lat(),e.latLng.lng())}));copies.set(original,obj);}else obj.setOptions(opts);
+   }else if(original instanceof L.Circle){
+    const p=original.getLatLng();const opts={map:nativeMap,center:{lat:p.lat,lng:p.lng},radius:original.getRadius(),fillColor:original.options.fillColor||original.options.color,fillOpacity:original.options.fillOpacity,strokeColor:original.options.color,strokeWeight:original.options.weight,clickable:false};
+    if(!obj){obj=new google.maps.Circle(opts);original.on('move',queueDraw);copies.set(original,obj);}else obj.setOptions(opts);
+   }else if(original instanceof L.CircleMarker){
+    const p=original.getLatLng();const opts={map:nativeMap,position:{lat:p.lat,lng:p.lng},icon:{path:google.maps.SymbolPath.CIRCLE,scale:original.getRadius(),fillColor:original.options.fillColor||original.options.color,fillOpacity:original.options.fillOpacity??1,strokeColor:original.options.color,strokeWeight:original.options.weight},zIndex:2000};
+    if(!obj){obj=new google.maps.Marker(opts);original.on('move',queueDraw);copies.set(original,obj);}else obj.setOptions(opts);
    }else if(original instanceof L.Marker){
     const pos=original.getLatLng(),html=original.options.icon?.options?.html||'';const d=document.createElement('div');d.innerHTML=html;
     const dot=d.querySelector('.dotmarker');const label=(dot?.textContent||d.textContent||'•').trim().slice(0,2);const color=dot?.style.getPropertyValue('--route')||'#205b65';
@@ -1832,7 +1839,7 @@ function installGoogleBasemap(config){
    }else return;
    present.add(original);
   });
-  for(const [original,obj]of copies){if(!present.has(original)){obj.setMap(null);copies.delete(original);}}
+  for(const [original,obj]of copies){if(!present.has(original)){obj.setMap(null);original.off('move',queueDraw);copies.delete(original);}}
  }
  map.on('layeradd layerremove',queueDraw);
  map.on('moveend zoomend',()=>{if(!active()||fromGoogle||!nativeMap)return;const p=map.getCenter();nativeMap.setCenter({lat:p.lat,lng:p.lng});nativeMap.setZoom(map.getZoom());queueDraw();});
