@@ -1008,6 +1008,16 @@ header.trip-finder .holiday-guide{display:flex;flex-wrap:wrap;gap:3px 6px;margin
 #mapPointDialog{width:min(430px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0;border:1px solid #bed1d4;border-radius:14px;color:#203e49;background:white;overflow:auto;overscroll-behavior:contain}
 #mapPointDialog::backdrop{background:#16374466}#mapPointDialog .point-dialog-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#edf4f4;padding:10px 14px;border-bottom:1px solid #cbdcdd}#mapPointDialog .point-dialog-head button{min-height:44px;min-width:100px;background:#205b65;color:white;font-size:14px}#mapPointDialog .point-dialog-content{padding:16px;font-size:14px;overflow-wrap:anywhere}#mapPointDialog img{max-width:100%;height:auto}#mapPointDialog .stopcard{max-width:none}#mapPointDialog .stoplinks a{min-height:44px}
 .leaflet-popup-pane{z-index:900}.leaflet-container a.leaflet-popup-close-button{width:36px;height:36px;font-size:27px;line-height:36px;background:white;border-radius:50%}.leaflet-popup-content{margin-top:38px}
+
+/* Native select arrow has its own space; focus never overlaps the label. */
+.atlas-map-tools #basemap{width:164px;max-width:100%;padding:8px 30px 8px 10px;appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m2 2 4 4 4-4' fill='none' stroke='%23205b65' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center;outline-offset:3px;line-height:1.3}
+#basemap:focus-visible{outline:2px solid #e18732;box-shadow:none}
+#googlePlacePanel{position:absolute;top:10px;right:10px;bottom:40px;width:min(360px,calc(100% - 75px));z-index:1100;background:#fff;border:1px solid #c7d7dc;border-radius:12px;box-shadow:0 3px 16px #0003;overflow:hidden;display:flex;flex-direction:column;color:#192f3a}
+#googlePlacePanel[hidden]{display:none}
+.google-place-close{align-self:flex-end;flex:none;width:44px;height:44px;margin:3px;border:0;font-size:25px;line-height:1;background:white}
+.google-place-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 8px 8px}
+.google-place-body gmp-place-details{width:100%;height:100%;border:0;color-scheme:light}
+@media(max-width:720px){#googlePlacePanel{top:6px;right:6px;bottom:25px;width:calc(100% - 12px)}#map.google-place-open .leaflet-control-container{visibility:hidden}}
 </style>
 <meta name="description" content="Отвесная северная стена Sass de Putia, просторные южные луга и смена панорам по кругу. Самостоятельный массив вдали от троп Seceda и Adolf Munkel. ≈13 км · 5–6 ч с остановками."><meta property="og:type" content="website"><meta property="og:title" content="Sass de Putia · панорамное кольцо · Доломиты на выходной"><meta property="og:description" content="Отвесная северная стена Sass de Putia, просторные южные луга и смена панорам по кругу. Самостоятельный массив вдали от троп Seceda и Adolf Munkel. ≈13 км · 5–6 ч с остановками."><meta property="og:image" content="https://visokihy-cyber.github.io/dolomites/share-cover.webp"><meta property="og:url" content="https://visokihy-cyber.github.io/dolomites/route-12.html"><link rel="canonical" href="https://visokihy-cyber.github.io/dolomites/route-12.html"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#205b65"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Доломиты"><link rel="apple-touch-icon" href="apple-touch-icon.png"></head><body data-route="12"><noscript><article><h1>Sass de Putia · панорамное кольцо · Доломиты на выходной</h1><p>Отвесная северная стена Sass de Putia, просторные южные луга и смена панорам по кругу. Самостоятельный массив вдали от троп Seceda и Adolf Munkel. ≈13 км · 5–6 ч с остановками.</p><p>Средняя · длинная</p><a href="./">Все маршруты</a></article></noscript>
 <header class="trip-finder holiday-settings" id="tripFinder" aria-labelledby="holidayTitle"><div class="holiday-heading"><h1 id="holidayTitle">Настройте Ваш выходной в Доломитах</h1><nav aria-label="Разделы"><button class="active" data-tab="mapview">Главная</button><button data-tab="planview">Подготовка</button><button data-tab="liftview">Билеты</button></nav><div class="header-order"><a class="custom-map-link" href="https://visokihy-cyber.github.io/dolomites/custom-map.html">Создать свою карту</a><span class="checked-date" title="Часть оперативных статусов и рейтингов не подтверждена; даты последней проверки указаны у объектов.">Сверка источников: 13.09.2026</span></div></div><p class="holiday-guide"><span>Выберите маршруты на карте — покажем виды, полезные точки и переезды.</span> <span>Скачайте треки на устройство или пользуйтесь онлайн.</span></p><button id="mobileFilterToggle" type="button" aria-expanded="false" aria-controls="holidayFields">Фильтры маршрутов</button><div class="holiday-fields" id="holidayFields"><label>Район в Доломитах<select id="browseArea"><option value="all">Все районы</option><option value="west">Западная часть</option><option value="cortina">Центральная часть</option><option value="east">Восточная часть</option></select></label><label>Нагрузка<select id="browseEffort"><option value="all">Любая</option><option value="gentle">Умеренная</option><option value="medium">Средняя</option><option value="hard">Для опытных</option></select></label><label>Обрывы, крутые уклоны<select id="tripHeights"><option value="any" selected>Любые</option><option value="no">Обойтись без них</option><option value="yes">Допустимы, есть опыт</option></select></label><button id="resetFilters">Сбросить всё</button></div></header>
@@ -1075,7 +1085,7 @@ const offline=new OfflineGrid({tileSize:256,minZoom:7,maxZoom:19,attribution:'О
 
 function addMapTools(){
  const layers=L.control({position:'bottomleft'});
- layers.onAdd=()=>{const box=L.DomUtil.create('div','atlas-map-tools');box.innerHTML='<label class="map-base-label">Карта <select id="basemap" aria-label="Основа карты"><option value="offline">Офлайн · Доломиты</option><option value="osm" selected>OpenStreetMap · онлайн</option><option value="topo">OpenTopoMap · онлайн</option></select></label>'+'<button type="button" id="findMapHotels">Отели ↗</button><a id="openGoogleMap" target="_blank" rel="noopener">Открыть в Google Maps ↗</a>';L.DomEvent.disableClickPropagation(box);L.DomEvent.disableScrollPropagation(box);return box;};layers.addTo(map);
+ layers.onAdd=()=>{const box=L.DomUtil.create('div','atlas-map-tools');box.innerHTML='<label class="map-base-label">Карта <select id="basemap" aria-label="Основа карты"><option value="osm" selected>OpenStreetMap</option><option value="topo">OpenTopoMap</option><option value="offline">Офлайн · Доломиты</option></select></label>'+'<button type="button" id="findMapHotels">Отели ↗</button><a id="openGoogleMap" target="_blank" rel="noopener">Открыть в Google Maps ↗</a>';L.DomEvent.disableClickPropagation(box);L.DomEvent.disableScrollPropagation(box);return box;};layers.addTo(map);
  const updateGoogle=()=>{const p=map.getCenter();$('openGoogleMap').href='https://www.google.com/maps/@?api=1&map_action=map&center='+p.lat.toFixed(6)+','+p.lng.toFixed(6)+'&zoom='+Math.round(map.getZoom());};map.on('moveend',updateGoogle);updateGoogle();
  const hotelDialog=document.createElement('dialog');hotelDialog.id='hotelDialog';hotelDialog.setAttribute('aria-labelledby','hotelTitle');hotelDialog.innerHTML=`<form id="hotelSearch" action="https://www.booking.com/searchresults.html" method="get" target="_blank" rel="noopener"><div class="hotel-head"><h2 id="hotelTitle">Отели рядом с картой</h2><button type="button" id="hotelClose" aria-label="Закрыть поиск отелей">×</button></div><p id="hotelAreaHint"></p><p>Передаём центр карты и название ближайшего населённого пункта. Booking может расширить область, если рядом мало жилья.</p><div class="hotel-fields"><label>Заезд<input id="hotelCheckin" name="checkin" type="date" required></label><label>Выезд<input id="hotelCheckout" name="checkout" type="date" required></label><label>Взрослые<input name="group_adults" type="number" min="1" max="30" value="2" required></label><label>Номера<input name="no_rooms" type="number" min="1" max="30" value="1" required></label><label>Дети<select id="hotelChildren" name="group_children"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label></div><div id="hotelAges" class="hotel-fields"></div><input type="hidden" name="ss"><input type="hidden" name="latitude"><input type="hidden" name="longitude"><input type="hidden" name="map" value="1"><input type="hidden" name="lang" value="ru"><button class="hotel-submit" type="submit">Найти на Booking.com ↗</button><small>Цены и свободные номера откроются на Booking.com.</small><details class="booking-help"><summary>Открылось приложение или другой район?</summary><p>Приложение Booking может не сохранить место из ссылки. Скопируйте ссылку и вставьте в адресную строку браузера.</p><button type="button" id="copyHotelLink">Скопировать ссылку для браузера</button><textarea id="hotelLinkFallback" aria-label="Ссылка для поиска отелей" readonly hidden></textarea><p id="hotelLinkStatus" role="status"></p></details></form>`;
  document.querySelector('.mapcanvas').append(hotelDialog);
@@ -1805,32 +1815,39 @@ function installGoogleBasemap(config){
  const expires=Date.parse(config.trialExpiresAt);
  if(!config.enabled||!config.apiKey||!config.trialApproved||!Number.isFinite(expires)||Date.now()>=expires||location.protocol==='file:')return;
  const select=$('basemap'),originalChange=select.onchange;
- const option=document.createElement('option');option.value='google';option.textContent='Google Maps · пробный доступ';select.append(option);
+ const option=document.createElement('option');option.value='google';option.textContent='Google Maps';select.insertBefore(option,select.querySelector('[value=topo]'));
  let sdkPromise=null,nativeMap=null,revision=0,failed=false,fromGoogle=false,drawFrame=0;
  const host=document.createElement('div');host.id='googleInteractiveMap';host.style.cssText='position:absolute;inset:0;z-index:1;display:none';$('map').append(host);
  const style=document.createElement('style');style.textContent='#map.google-active>.leaflet-pane{visibility:hidden}#map.google-active .leaflet-control-attribution{display:none}#map.google-active .leaflet-bottom.leaflet-left{bottom:26px}#googleInteractiveMap .gm-style-iw-d{max-height:min(55vh,400px)!important;overflow:auto!important}';document.head.append(style);
  const interactions=['dragging','scrollWheelZoom','doubleClickZoom','touchZoom','boxZoom','keyboard'];const priorHandlers={};
  L.DomEvent.disableClickPropagation(host);L.DomEvent.disableScrollPropagation(host);
  const copies=new Map();let info=null;
- const placeActions=document.createElement('div');placeActions.id='googlePlaceActions';placeActions.hidden=true;placeActions.setAttribute('aria-label','Действия с выбранным объектом Google');
- placeActions.style.cssText='background:white;padding:8px;border-radius:10px;box-shadow:0 2px 8px #0003;margin:8px;max-width:calc(100% - 100px);font:13px system-ui;display:none;gap:8px;align-items:center;flex-wrap:wrap';
- const placeDirections=document.createElement('a');placeDirections.textContent='Проложить маршрут ↗';placeDirections.target='_blank';placeDirections.rel='noopener';placeDirections.style.cssText='background:#205b65;color:white;padding:10px;border-radius:6px;text-decoration:none';
- const placeDetails=document.createElement('a');placeDetails.textContent='Полная карточка ↗';placeDetails.target='_blank';placeDetails.rel='noopener';placeDetails.style.cssText='padding:10px;color:#205b65';
- const dismissActions=document.createElement('button');dismissActions.textContent='×';dismissActions.setAttribute('aria-label','Скрыть действия с объектом');dismissActions.style.cssText='min-width:36px;min-height:40px';
- placeActions.append(placeDirections,placeDetails,dismissActions);
- function clearPlaceActions(){placeActions.hidden=true;placeActions.style.display='none';placeDirections.removeAttribute('href');placeDetails.removeAttribute('href');}
- dismissActions.onclick=e=>{e.stopPropagation();clearPlaceActions();};
- L.DomEvent.disableClickPropagation(placeActions);L.DomEvent.disableScrollPropagation(placeActions);
- function showPlaceActions(e){
-  clearPlaceActions();if(!e.placeId||!e.latLng)return;
-  const coords=e.latLng.lat()+','+e.latLng.lng();
-  placeDirections.href='https://www.google.com/maps/dir/?'+new URLSearchParams({api:'1',destination:coords,destination_place_id:e.placeId});
-  placeDetails.href='https://www.google.com/maps/search/?'+new URLSearchParams({api:'1',query:coords,query_place_id:e.placeId});
-  placeActions.hidden=false;placeActions.style.display='flex';
+ const placePanel=document.createElement('section');placePanel.id='googlePlacePanel';placePanel.hidden=true;placePanel.setAttribute('aria-label','Информация об объекте Google');
+ const closePlace=document.createElement('button');closePlace.type='button';closePlace.className='google-place-close';closePlace.textContent='×';closePlace.setAttribute('aria-label','Закрыть карточку места');
+ const placeBody=document.createElement('div');placeBody.className='google-place-body';placePanel.append(closePlace,placeBody);$('map').append(placePanel);
+ let placesReady=null,selectedPlace=null;
+ function clearPlacePanel(){selectedPlace=null;placePanel.hidden=true;placeBody.replaceChildren();$('map').classList.remove('google-place-open');}
+ closePlace.onclick=e=>{e.stopPropagation();clearPlacePanel();};
+ L.DomEvent.disableClickPropagation(placePanel);L.DomEvent.disableScrollPropagation(placePanel);
+ async function showPlace(e){
+  clearPlacePanel();if(!e.placeId)return;
+  e.stop();const id=e.placeId;selectedPlace=id;placePanel.hidden=false;$('map').classList.add('google-place-open');placeBody.textContent='Загружаем информацию о месте…';
+  try{
+   placesReady??=google.maps.importLibrary('places');await placesReady;
+   if(selectedPlace!==id||!active())return;
+   const details=document.createElement('gmp-place-details'),request=document.createElement('gmp-place-details-place-request');
+   request.place=id;details.append(request,document.createElement('gmp-place-all-content'));
+   details.addEventListener('gmp-error',()=>{if(selectedPlace===id)showPlaceError(id);});
+   placeBody.replaceChildren(details);
+  }catch{if(selectedPlace===id)showPlaceError(id);}
+ }
+ function showPlaceError(id){
+  placeBody.textContent='Не удалось загрузить карточку. ';
+  const a=document.createElement('a');a.textContent='Открыть место в Google Maps ↗';a.href='https://www.google.com/maps/search/?'+new URLSearchParams({api:'1',query:'place',query_place_id:id});a.target='_blank';a.rel='noopener';placeBody.append(a);
  }
  $('map').querySelector('.leaflet-control-zoom').addEventListener('click',e=>{if(!active()||!nativeMap)return;const b=e.target.closest('a');if(!b)return;e.preventDefault();e.stopImmediatePropagation();nativeMap.setZoom(nativeMap.getZoom()+(b.classList.contains('leaflet-control-zoom-in')?1:-1));},true);
  function active(){return select.value==='google'&&host.style.display!=='none';}
- function hide(){clearPlaceActions();host.style.display='none';$('map').classList.remove('google-active');info?.close();interactions.forEach(k=>{if(priorHandlers[k])map[k]?.enable();});}
+ function hide(){clearPlacePanel();host.style.display='none';$('map').classList.remove('google-active');info?.close();interactions.forEach(k=>{if(priorHandlers[k])map[k]?.enable();});}
  function queueDraw(){if(!active()||drawFrame)return;drawFrame=requestAnimationFrame(()=>{drawFrame=0;syncLayers();});}
  function syncLayers(){
   if(!nativeMap||!active())return;const present=new Set();
@@ -1859,7 +1876,7 @@ function installGoogleBasemap(config){
  }
  map.on('layeradd layerremove',queueDraw);
  map.on('moveend zoomend',()=>{if(!active()||fromGoogle||!nativeMap)return;const p=map.getCenter();nativeMap.setCenter({lat:p.lat,lng:p.lng});nativeMap.setZoom(map.getZoom());queueDraw();});
- map.on('popupopen',e=>{clearPlaceActions();if(!active()||innerWidth<721||e.popup._source?.options?.title?.includes(' · зрелищность '))return;const p=e.popup.getLatLng();info.setContent(e.popup.getContent());info.setPosition({lat:p.lat,lng:p.lng});info.open({map:nativeMap});});
+ map.on('popupopen',e=>{clearPlacePanel();if(!active()||innerWidth<721||e.popup._source?.options?.title?.includes(' · зрелищность '))return;const p=e.popup.getLatLng();info.setContent(e.popup.getContent());info.setPosition({lat:p.lat,lng:p.lng});info.open({map:nativeMap});});
  map.on('popupclose',()=>{if(active()&&innerWidth>720)info?.close();});
  new ResizeObserver(()=>{if(active()&&nativeMap)google.maps.event.trigger(nativeMap,'resize');}).observe(host);
  function fallback(message){
@@ -1879,16 +1896,15 @@ function installGoogleBasemap(config){
  async function ready(){
   if(!sdkPromise){sdkPromise=(async()=>{
    window.gm_authFailure=()=>{failed=true;if(select.value==='google')fallback('Google Maps недоступна. Показана OpenStreetMap.');};
-   const params=new URLSearchParams({key:config.apiKey,loading:'async',callback:'atlasGoogleReady',v:'quarterly',language:'ru'});
+   const params=new URLSearchParams({key:config.apiKey,loading:'async',callback:'atlasGoogleReady',v:'weekly',language:'ru'});
    await loadScript('https://maps.googleapis.com/maps/api/js?'+params,'atlasGoogleReady');
    if(failed||!window.google?.maps?.Map)throw new Error('authorization');
    const p=map.getCenter();
    nativeMap=new google.maps.Map(host,{center:{lat:p.lat,lng:p.lng},zoom:map.getZoom(),mapTypeId:'roadmap',clickableIcons:true,styles:[{featureType:'poi.business',stylers:[{visibility:'on'}]}],disableDefaultUI:true,gestureHandling:'greedy',keyboardShortcuts:true});
    info=new google.maps.InfoWindow({maxWidth:340});
-   nativeMap.controls[google.maps.ControlPosition.TOP_CENTER].push(placeActions);
    nativeMap.addListener('idle',()=>{if(!active())return;const p=nativeMap.getCenter();fromGoogle=true;map.setView([p.lat(),p.lng()],Math.round(nativeMap.getZoom()),{animate:false});fromGoogle=false;queueDraw();});
-   // Keep Google's own POI card; a blank-map click only dismisses atlas details.
-   nativeMap.addListener('click',e=>{info.close();map.closePopup();showPlaceActions(e);});
+   // Query the Essentials details widget only for an explicitly clicked Google POI.
+   nativeMap.addListener('click',e=>{info.close();map.closePopup();showPlace(e);});
    info.addListener('closeclick',()=>map.closePopup());
   })();}
   return sdkPromise;
