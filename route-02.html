@@ -1812,9 +1812,25 @@ function installGoogleBasemap(config){
  const interactions=['dragging','scrollWheelZoom','doubleClickZoom','touchZoom','boxZoom','keyboard'];const priorHandlers={};
  L.DomEvent.disableClickPropagation(host);L.DomEvent.disableScrollPropagation(host);
  const copies=new Map();let info=null;
+ const placeActions=document.createElement('div');placeActions.id='googlePlaceActions';placeActions.hidden=true;placeActions.setAttribute('aria-label','Действия с выбранным объектом Google');
+ placeActions.style.cssText='background:white;padding:8px;border-radius:10px;box-shadow:0 2px 8px #0003;margin:8px;max-width:calc(100% - 100px);font:13px system-ui;display:none;gap:8px;align-items:center;flex-wrap:wrap';
+ const placeDirections=document.createElement('a');placeDirections.textContent='Проложить маршрут ↗';placeDirections.target='_blank';placeDirections.rel='noopener';placeDirections.style.cssText='background:#205b65;color:white;padding:10px;border-radius:6px;text-decoration:none';
+ const placeDetails=document.createElement('a');placeDetails.textContent='Полная карточка ↗';placeDetails.target='_blank';placeDetails.rel='noopener';placeDetails.style.cssText='padding:10px;color:#205b65';
+ const dismissActions=document.createElement('button');dismissActions.textContent='×';dismissActions.setAttribute('aria-label','Скрыть действия с объектом');dismissActions.style.cssText='min-width:36px;min-height:40px';
+ placeActions.append(placeDirections,placeDetails,dismissActions);
+ function clearPlaceActions(){placeActions.hidden=true;placeActions.style.display='none';placeDirections.removeAttribute('href');placeDetails.removeAttribute('href');}
+ dismissActions.onclick=e=>{e.stopPropagation();clearPlaceActions();};
+ L.DomEvent.disableClickPropagation(placeActions);L.DomEvent.disableScrollPropagation(placeActions);
+ function showPlaceActions(e){
+  clearPlaceActions();if(!e.placeId||!e.latLng)return;
+  const coords=e.latLng.lat()+','+e.latLng.lng();
+  placeDirections.href='https://www.google.com/maps/dir/?'+new URLSearchParams({api:'1',destination:coords,destination_place_id:e.placeId});
+  placeDetails.href='https://www.google.com/maps/search/?'+new URLSearchParams({api:'1',query:coords,query_place_id:e.placeId});
+  placeActions.hidden=false;placeActions.style.display='flex';
+ }
  $('map').querySelector('.leaflet-control-zoom').addEventListener('click',e=>{if(!active()||!nativeMap)return;const b=e.target.closest('a');if(!b)return;e.preventDefault();e.stopImmediatePropagation();nativeMap.setZoom(nativeMap.getZoom()+(b.classList.contains('leaflet-control-zoom-in')?1:-1));},true);
  function active(){return select.value==='google'&&host.style.display!=='none';}
- function hide(){host.style.display='none';$('map').classList.remove('google-active');info?.close();interactions.forEach(k=>{if(priorHandlers[k])map[k]?.enable();});}
+ function hide(){clearPlaceActions();host.style.display='none';$('map').classList.remove('google-active');info?.close();interactions.forEach(k=>{if(priorHandlers[k])map[k]?.enable();});}
  function queueDraw(){if(!active()||drawFrame)return;drawFrame=requestAnimationFrame(()=>{drawFrame=0;syncLayers();});}
  function syncLayers(){
   if(!nativeMap||!active())return;const present=new Set();
@@ -1843,7 +1859,7 @@ function installGoogleBasemap(config){
  }
  map.on('layeradd layerremove',queueDraw);
  map.on('moveend zoomend',()=>{if(!active()||fromGoogle||!nativeMap)return;const p=map.getCenter();nativeMap.setCenter({lat:p.lat,lng:p.lng});nativeMap.setZoom(map.getZoom());queueDraw();});
- map.on('popupopen',e=>{if(!active()||innerWidth<721||e.popup._source?.options?.title?.includes(' · зрелищность '))return;const p=e.popup.getLatLng();info.setContent(e.popup.getContent());info.setPosition({lat:p.lat,lng:p.lng});info.open({map:nativeMap});});
+ map.on('popupopen',e=>{clearPlaceActions();if(!active()||innerWidth<721||e.popup._source?.options?.title?.includes(' · зрелищность '))return;const p=e.popup.getLatLng();info.setContent(e.popup.getContent());info.setPosition({lat:p.lat,lng:p.lng});info.open({map:nativeMap});});
  map.on('popupclose',()=>{if(active()&&innerWidth>720)info?.close();});
  new ResizeObserver(()=>{if(active()&&nativeMap)google.maps.event.trigger(nativeMap,'resize');}).observe(host);
  function fallback(message){
@@ -1869,9 +1885,10 @@ function installGoogleBasemap(config){
    const p=map.getCenter();
    nativeMap=new google.maps.Map(host,{center:{lat:p.lat,lng:p.lng},zoom:map.getZoom(),mapTypeId:'roadmap',clickableIcons:true,styles:[{featureType:'poi.business',stylers:[{visibility:'on'}]}],disableDefaultUI:true,gestureHandling:'greedy',keyboardShortcuts:true});
    info=new google.maps.InfoWindow({maxWidth:340});
+   nativeMap.controls[google.maps.ControlPosition.TOP_CENTER].push(placeActions);
    nativeMap.addListener('idle',()=>{if(!active())return;const p=nativeMap.getCenter();fromGoogle=true;map.setView([p.lat(),p.lng()],Math.round(nativeMap.getZoom()),{animate:false});fromGoogle=false;queueDraw();});
    // Keep Google's own POI card; a blank-map click only dismisses atlas details.
-   nativeMap.addListener('click',()=>{info.close();map.closePopup();});
+   nativeMap.addListener('click',e=>{info.close();map.closePopup();showPlaceActions(e);});
    info.addListener('closeclick',()=>map.closePopup());
   })();}
   return sdkPromise;
