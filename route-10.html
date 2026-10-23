@@ -1100,7 +1100,7 @@ L.control.scale({imperial:false}).addTo(map);const lineLayer=L.layerGroup().addT
 
 const backgroundLayer=L.layerGroup().addTo(map);
 function drawBackgroundLabels(){
- backgroundLayer.clearLayers();$('backgroundLabels').disabled=$('basemap').value!=='offline';$('backgroundLabels').parentElement.hidden=$('basemap').value!=='offline';$('mapLegendTitle').textContent={offline:'OSM · офлайн-район всех 12 маршрутов',osm:'OpenStreetMap · онлайн',topo:'OpenTopoMap · онлайн'}[$('basemap').value];if(!$('backgroundLabels').checked||$('basemap').value!=='offline')return;
+ backgroundLayer.clearLayers();$('backgroundLabels').disabled=$('basemap').value!=='offline';$('backgroundLabels').parentElement.hidden=$('basemap').value!=='offline';$('mapLegendTitle').textContent={offline:'OSM · офлайн-район всех 12 маршрутов',osm:'OpenStreetMap · онлайн',topo:'OpenTopoMap · онлайн',google:'Google Maps · подложка; маршруты и точки — атлас'}[$('basemap').value];if(!$('backgroundLabels').checked||$('basemap').value!=='offline')return;
  const z=map.getZoom(),size=map.getSize(),occupied=[];
  if(selected&&$('pointsToggle').checked)routeBy(selected).points.forEach(k=>{const p=map.latLngToContainerPoint(pois[k].pos);occupied.push([p.x-135,p.y-65,p.x+135,p.y+25]);});
  const rank={city:0,town:1,village:2,hamlet:3,peak:4,pass:5};
@@ -1795,5 +1795,55 @@ function explainPlaceNodes(root){
  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(explainPlaceNodes);
 }
 queueMicrotask(()=>{explainPlaceNodes(document.body);const observer=new MutationObserver(records=>{observer.disconnect();for(const record of records){if(record.type==='characterData')explainPlaceNodes(record.target);else record.addedNodes.forEach(explainPlaceNodes);}observer.observe(document.body,{childList:true,subtree:true,characterData:true});});observer.observe(document.body,{childList:true,subtree:true,characterData:true});});
+
+
+// Optional trial integration. Account must remain on the non-billable free trial.
+function installGoogleBasemap(config){
+ const expires=Date.parse(config.trialExpiresAt);
+ if(!config.enabled||!config.apiKey||!config.trialApproved||!Number.isFinite(expires)||Date.now()>=expires||location.protocol==='file:')return;
+ const select=$('basemap'),originalChange=select.onchange;
+ const option=document.createElement('option');option.value='google';option.textContent='Google Maps · пробный доступ';select.append(option);
+ let sdkPromise=null,layer=null,revision=0,failed=false;
+ function fallback(message){
+  if(layer&&map.hasLayer(layer))map.removeLayer(layer);
+  select.value='osm';originalChange();if(message)toast(message);
+ }
+ function expire(){if(Date.now()<expires)return false;revision++;if(select.value==='google')fallback('Пробный период Google Maps завершён. Показана OpenStreetMap.');option.remove();return true;}
+ const expiryTimer=setInterval(()=>{if(expire())clearInterval(expiryTimer);},30000);
+ document.addEventListener('visibilitychange',expire);
+ function loadScript(url,callback){return new Promise((resolve,reject)=>{
+  const script=document.createElement('script');let settled=false;
+  const timer=setTimeout(()=>finish(new Error('timeout')),20000);
+  function finish(error){if(settled)return;settled=true;clearTimeout(timer);if(error){script.remove();reject(error);}else resolve();}
+  if(callback)window[callback]=()=>finish();else script.onload=()=>finish();
+  script.onerror=()=>finish(new Error('network'));script.async=true;script.src=url;document.head.append(script);
+ });}
+ async function ready(){
+  if(!sdkPromise){sdkPromise=(async()=>{
+   window.gm_authFailure=()=>{failed=true;if(select.value==='google')fallback('Google Maps недоступна. Показана OpenStreetMap.');};
+   const params=new URLSearchParams({key:config.apiKey,loading:'async',callback:'atlasGoogleReady',v:'quarterly',language:'ru'});
+   await loadScript('https://maps.googleapis.com/maps/api/js?'+params,'atlasGoogleReady');
+   if(failed||!window.google?.maps?.Map)throw new Error('authorization');
+   await loadScript('google-mutant.js');
+   layer=L.gridLayer.googleMutant({type:'roadmap',maxZoom:19});
+  })();}
+  return sdkPromise;
+ }
+ select.onchange=async()=>{
+  if(expire())return;
+  const request=++revision;
+  if(select.value!=='google'){if(layer&&map.hasLayer(layer))map.removeLayer(layer);return originalChange();}
+  if(failed){fallback('Google Maps недоступна. Показана OpenStreetMap.');return;}
+  toast('Загружаем Google Maps…');
+  try{
+   await ready();if(request!==revision||select.value!=='google')return;
+   if(expire())return;
+   if(failed)throw new Error('authorization');
+   [osm,topo,offline].forEach(base=>map.removeLayer(base));layer.addTo(map);
+   $('maperror').hidden=true;drawBackgroundLabels();$('mapLegendTitle').textContent='Google Maps · пробный доступ';
+  }catch{if(request===revision&&select.value==='google')fallback('Не удалось загрузить Google Maps. Показана OpenStreetMap.');}
+ };
+}
+installGoogleBasemap({"enabled": true, "apiKey": "AIzaSyAG5KwxKLbS-38EQCg11jM-vSl8PVGfqtc", "quotaVerified": false, "trialApproved": true, "trialExpiresAt": "2027-01-20T00:00:00Z"});
 
 </script></body></html>
